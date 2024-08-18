@@ -4,6 +4,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from django.shortcuts import redirect
 from django.urls import reverse_lazy, reverse
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django.views.generic import (
     TemplateView,
     CreateView,
@@ -35,6 +37,8 @@ def toggle_active(request, pk):
     return redirect(reverse("mailing:list_mailing"))
 
 
+# Применяем кеширование для HomeView на 15 минут
+@method_decorator(cache_page(60*15), name='dispatch')
 class HomeView(TemplateView):
     template_name = "mailing/home.html"
 
@@ -72,6 +76,8 @@ class ClientsCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
+# Применяем кеширование для списка клиентов на 10 минут
+@method_decorator(cache_page(60*10), name='dispatch')
 class ClientsListView(ListView):
     model = Clients
 
@@ -126,7 +132,8 @@ class ClientsDeleteView(LoginRequiredMixin, DeleteView):
         return self.object
 
 
-# Контроллеры для рассылок
+# Применяем кеширование для списка рассылок на 10 минут
+@method_decorator(cache_page(60*10), name='dispatch')
 class MailingListView(LoginRequiredMixin, ListView):
     model = Mailing
     login_url = "users:login"
@@ -238,6 +245,8 @@ class MessageDeleteView(LoginRequiredMixin, DeleteView):
         return context_data
 
 
+# Применяем кеширование для детальной информации о сообщении на 30 минут
+@method_decorator(cache_page(60*30), name='dispatch')
 class MessageDetailView(LoginRequiredMixin, DetailView):
     model = Message
     login_url = "users:login"
@@ -249,7 +258,8 @@ class MessageDetailView(LoginRequiredMixin, DetailView):
         return context_data
 
 
-# Контроллеры для логов рассылок
+# Применяем кеширование для логов рассылок на 10 минут
+@method_decorator(cache_page(60*10), name='dispatch')
 class MailingLogListView(LoginRequiredMixin, ListView):
     model = MailingLog
     login_url = "users:login"
@@ -261,6 +271,8 @@ class MailingLogListView(LoginRequiredMixin, ListView):
         return context_data
 
 
+# Применяем кеширование для детальной информации о логе рассылки на 30 минут
+@method_decorator(cache_page(60*30), name='dispatch')
 class MailingLogDetailView(LoginRequiredMixin, DetailView):
     model = MailingLog
 

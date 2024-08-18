@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
 
@@ -89,7 +90,12 @@ class Mailing(models.Model):
         """
         Возвращает список email адресов клиентов для рассылки
         """
-        return [client.email for client in self.clients.all()]
+        cache_key = f"mailing_recipients_{self.pk}"
+        recipients = cache.get(cache_key)
+        if recipients is None:
+            recipients = [client.email for client in self.clients.all()]
+            cache.set(cache_key, recipients, 60*10)  # Кеширование на 10 минут
+        return recipients
 
     def __str__(self):
         return f"{self.owner} {self.start_mailing} {self.periodicity} {self.status}"
@@ -115,16 +121,15 @@ class MailingLog(models.Model):
         max_length=50, verbose_name="ответ почтового сервера", **NULLABLE
     )
     mailing = models.ForeignKey(
-        Mailing, on_delete=models.CASCADE, verbose_name="расписание", **NULLABLE
+        Mailing, on_delete=models.SET_NULL, verbose_name="рассылка", **NULLABLE
     )
+    owner = models.ForeignKey(
+        User, verbose_name="создатель", **NULLABLE, on_delete=models.SET_NULL
+    )
+
+    def __str__(self):
+        return f"{self.mailing} {self.last_attempt} {self.status}"
 
     class Meta:
         verbose_name = "Лог рассылки"
-        verbose_name_plural = "Логи рассылок"
-        ordering = ("-last_attempt",)
-        permissions = [
-            ("change_is_active", "Может отключать рассылки."),
-        ]
-
-    def __str__(self):
-        return f"{self.last_attempt} - {self.status} - {self.server_response}"
+        verbose_name_plural = "Логи рассылки"
